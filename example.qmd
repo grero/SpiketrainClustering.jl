@@ -1,0 +1,73 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{julia}
+using SpiketrainClustering
+using LinearAlgebra
+using Distributions
+
+using Makie
+using CairoMakie
+
+# Two categories, separated by spike times only
+n = 5 # five spikes
+nt = 100
+g1 = Gamma(0.3, 0.5)
+g2 = Gamma(2.3, 0.9)
+sp1 = [cumsum(rand(g1, 5)) for i in 1:nt]
+sp2 = [cumsum(rand(g2, 5)) for i in 1:nt]
+tidx = [fill(i,5) for i in 1:nt]
+D = [SpiketrainClustering.gaussian_kernel(s1,s2,0.5) for s1 in sp1, s2 in sp2]
+D2 = [SpiketrainClustering.schoenberg_kernel(s1,s2,0.5, 1.0) for s1 in sp1, s2 in sp2]
+u,s,v = svd(D)
+u2,s2,v2 = svd(D2)
+@time l = SpiketrainClustering.regression_loss(0.5, 1.0, 0.1, sp1, randn(nt))
+@show l
+with_theme(theme_minimal()) do
+    fig = Figure(resolution=(500,500))
+    ax1 = Axis(fig[1,1])
+    ax2 = Axis(fig[1,2])
+
+    for (ax, sp) in zip([ax1, ax2],[sp1, sp2])
+        scatter!(ax, cat(sp[:]...,dims=1),cat(tidx[:]...,dims=1))
+    end
+    ax3 = Axis(fig[2,1:2])
+    #lines!(ax3, 1:length(s), s)
+    lines!(ax3, 1:length(s2), s2)
+    fig
+end
+```
+
+```{julia}
+using SpiketrainClustering
+using Flux
+using Flux: Zygote, Optimise
+using Distributions
+using LinearAlgebra
+
+n = 5 # five spikes
+nt = 100
+g1 = Gamma(0.3, 0.5)
+g2 = Gamma(2.3, 0.9)
+sp1 = [cumsum(rand(g1, 5)) for i in 1:nt]
+sp2 = [cumsum(rand(g2, 5)) for i in 1:nt]
+#y = randn(nt)
+y = [sp[3] for sp in sp1] + 0.1randn(nt)
+# do some training
+#TODO: Make this meaningful, i.e. have y depend on the spike trains
+params,loss = SpiketrainClustering.do_regression(y, sp1;niter=1000)
+K = [SpiketrainClustering.schoenberg_kernel(sp1[i], sp1[j], params.τ[1], params.σ[1]) for i in 1:nt, j in 1:nt]
+L = sum(SpiketrainClustering.posterior(K,y, params.σn[1]))
+#L, yp = L*(K+params.σn[1]^2*I)*inv(K)
+K,L
+μ = dropdims(mean(K,dims=1),dims=1)
+
+with_theme(theme_minimal()) do
+    fig,ax = scatter(μ, y)
+    ax2 = Axis(fig[2,1])
+    lines!(ax2, 1:length(loss), loss)
+    fig
+end
+```
