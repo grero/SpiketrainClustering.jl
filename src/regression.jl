@@ -4,8 +4,7 @@ using Flux: Zygote, Optimise
 using LinearAlgebra
 using ProgressMeter
 
-function do_regression(y::Vector{Float64}, sp::Vector{Vector{Float64}};niter=20)
-    rule = Optimise.Adam()
+function do_regression(y::Vector{Float64}, sp::Vector{Vector{Float64}};niter=20, rule=Optimise.Adam())
     params = (σ=[1.0], τ=[1.0], σn=[1.0])
     opt_state = Flux.setup(rule, params)
     L = fill(0.0, niter+1)
