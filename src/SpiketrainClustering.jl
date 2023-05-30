@@ -7,6 +7,19 @@ using Zygote
 using Zygote: ChainRules, Tangent
 
 #TODO: Implement product kernel to deal with multiple neurons
+struct ProductKernel{T<:KernelFunctions.Kernel}
+    kernels::Vector{T}
+end
+
+function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T <: Vector{T2} where T2 <: Real
+    q = 1.0
+    for (kk,_x,_y) in zip(k.kernels, x, y)
+        q *= kk(_x,_y)
+    end
+    q
+end
+
+Functors.@functor ProductKernel
 struct SpikeKernel{T<:Real} <: KernelFunctions.Kernel
     τ::Vector{T}
 end
