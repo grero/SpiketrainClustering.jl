@@ -7,6 +7,14 @@ using Random
 using LinearAlgebra
 using Test
 
+@testset "Divergence" begin
+    x = [[0.1, 0.3, 0.4], [0.2,0.4]]
+    y = [[0.3, 0.5, 0.7], [0.5,0.7]]
+    kernel = SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0])
+    d = SpiketrainClustering.divergence(kernel, x, y)
+    # TODO: Check that this actually is correct
+    @test d ≈ 0.9772709154550234
+end
 
 @testset "Basic" begin
     n = 5 # five spikes
