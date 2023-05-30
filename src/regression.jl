@@ -15,6 +15,29 @@ function predict(x_test, x_train, y_train, ps)
 end
 
 """
+Get the appropriate kernel reconstruction function
+"""
+get_kernel_function(sp::Any) = error("Not implemented")
+
+"""
+A single kernel for trials of spiketrains from a single neuron
+"""
+function get_kernel_function(sp::Vector{Vector{Float64}})
+    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+end
+
+"""
+Product kernel for trials of spiketrains from multiple neurons
+"""
+function get_kernel_function(sp::Vector{Vector{Vector{Float64}}})
+    # first make sure that each trial has the same number of neurons
+    nn = length.(sp)
+    all(nn .== nn[1]) || error("All trials should have the same number of neurons")
+    n = nn[1]
+    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]))
+end
+
+"""
 ```
 function do_regression(y::Vector{Float64}, sp::Vector{Vector{Float64}};niter=20, opt=Optimise.Adam(),rel_tol=sqrt(eps(Float64)))
 ```
