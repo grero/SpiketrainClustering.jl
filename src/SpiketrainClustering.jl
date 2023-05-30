@@ -6,7 +6,6 @@ using Functors
 using Zygote
 using Zygote: ChainRules, Tangent
 
-#TODO: Implement product kernel to deal with multiple neurons
 struct ProductKernel{T<:KernelFunctions.Kernel} <: KernelFunctions.Kernel
     kernels::Vector{T}
 end
