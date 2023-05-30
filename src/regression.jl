@@ -52,9 +52,9 @@ with \$\\kappa'\$ given by
 \$\\kappa'(x,y) = sum_{i,j}\\exp\\left( -\\frac{1}{\\tau} | x_i - y_i| \\right)\$.
 
 """
-function do_regression(y::Vector{Float64}, sp::Vector{Vector{Float64}};niter=20, opt=Optimise.Adam(),rel_tol=sqrt(eps(Float64)))
+function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_tol=sqrt(eps(Float64)))
     # prep the kernel
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+    params,kernelc = get_kernel_function(sp)
 
     nparams = length(params)
     function f(x, x_train, y_train, ps)
