@@ -75,10 +75,9 @@ end
 
 @testset "Product kernel" begin
     ps = [1.0, 1.0, 1.0]
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0])) 
-    kernel1 = kernelc(ps[1:2])
-    kernel2 = kernelc(ps[1:2])
-    pkernel = SpiketrainClustering.ProductKernel([kernel1, kernel2])
+    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]),
+                                                                              SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0])]))
+    pkernel = kernelc([1.0, 1.0, 1.0, 1.0])
     
     # two trials, each containing spike trains for two cells
     sp = [[[0.1, 0.3, 0.4],[0.3, 0.5]], [[0.2,0.4],[0.5,0.7]]]
