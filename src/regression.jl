@@ -33,14 +33,15 @@ function do_regression(y::Vector{Float64}, sp::Vector{Vector{Float64}};niter=20,
     # prep the kernel
     params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
 
+    nparams = length(params)
     function f(x, x_train, y_train, ps)
-        k = kernelc(ps[1:2])
-        return kernelmatrix(k, x, x_train) * ((kernelmatrix(k, x_train) + (ps[3]) * I) \ y_train)
+        k = kernelc(ps[1:nparams])
+        return kernelmatrix(k, x, x_train) * ((kernelmatrix(k, x_train) + (ps[nparams+1]) * I) \ y_train)
     end 
 
     function loss(θ)
         ŷ = f(sp, sp, y, exp.(θ))
-        return norm(y - ŷ) + exp(θ[3]) * norm(ŷ)
+        return norm(y - ŷ) + exp(θ[end]) * norm(ŷ)
     end
 
     ps = [1.0, 1.0, 1.0]
