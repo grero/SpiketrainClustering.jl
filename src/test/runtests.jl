@@ -83,4 +83,8 @@ end
     sp = [[[0.1, 0.3, 0.4],[0.3, 0.5]], [[0.2,0.4],[0.5,0.7]]]
     q = pkernel(sp[1], sp[2])
     @test q ≈ 0.18684577370816283
+
+    # construct kernel matrix over all trials
+    K = kernelmatrix(pkernel, sp, sp)
+    @test K ≈ [1.0 q;q 1.0]
 end
