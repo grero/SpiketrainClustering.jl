@@ -103,6 +103,15 @@ end
 
 Functors.@functor SchoenbergKernel2
 
+function divergence(k::KernelFunctions.Kernel, x, y)
+    n = length(x)
+    m = length(y)
+    Kxx = kernelmatrix(k,x,x)
+    Kyy = kernelmatrix(k,y,y)
+    Kxy = kernelmatrix(k,x,y)
+    (1/n^2)*sum(Kxx) + (1/m^2)*sum(Kyy) - (2/(m*n))*sum(Kxy)
+end
+
 gaussian_kernel(t1::Real, t2::Real, τ) = exp(-(t1-t2)^2/(2τ^2))
 spike_kernel(t1::Real, t2::Real, τ) = exp(-abs(t1-t2)/τ)
 
