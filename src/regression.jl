@@ -3,6 +3,7 @@ using Flux
 using Flux: Zygote, Optimise
 using LinearAlgebra
 using ProgressMeter
+using Random
 
 function kernel_creator(ps)
     return SchoenbergKernel(ps[1], SpikeKernel(ps[2]))
