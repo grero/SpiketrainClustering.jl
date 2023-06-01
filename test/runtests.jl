@@ -7,6 +7,14 @@ using Random
 using LinearAlgebra
 using Test
 
+@testset "mean" begin
+    x = [[0.1, 0.3, 0.4], [0.2,0.4]]
+    y = [[0.3, 0.5], [0.5,0.6, 0.7]]
+    kernel = SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0])
+    μ = mean(kernel, x, y)
+    @test μ ≈ [0.15358134219644462, 0.37404874973981617]
+end
+
 @testset "Divergence" begin
     x = [[0.1, 0.3, 0.4], [0.2,0.4]]
     y = [[0.3, 0.5, 0.7], [0.5,0.7]]

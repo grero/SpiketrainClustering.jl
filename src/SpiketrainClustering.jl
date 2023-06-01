@@ -5,6 +5,12 @@ using KernelFunctions: Distances
 using Functors
 using Zygote
 using Zygote: ChainRules, Tangent
+using StatsBase
+
+function StatsBase.mean(k::KernelFunctions.Kernel, x, y)
+    K = kernelmatrix(k, x,y)
+    vec(mean(K,dims=2))
+end
 
 struct ProductKernel{T<:KernelFunctions.Kernel} <: KernelFunctions.Kernel
     kernels::Vector{T}
