@@ -27,6 +27,10 @@ function get_kernel_function(sp::Vector{Vector{Float64}})
     params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
 end
 
+function get_kernel_function(sp::Vector{Spiketrain})
+    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+end
+
 """
 Product kernel for trials of spiketrains from multiple neurons
 """

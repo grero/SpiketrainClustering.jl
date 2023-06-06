@@ -7,6 +7,25 @@ using Zygote
 using Zygote: ChainRules, Tangent
 using StatsBase
 
+struct Spiketrain <: AbstractVector{Float64}
+    spikes::Vector{Float64}
+end
+Base.size(x::Spiketrain) = size(x.spikes)
+Base.getindex(x::Spiketrain, inds::Vararg{Int,1}) = x.spikes[inds...]
+Base.setindex!(x::Spiketrain,val, inds::Vararg{Int,1}) = x.spikes[inds...] = val
+
+Base.BroadcastStyle(::Type{<:Spiketrain}) = Broadcast.ArrayStyle{Spiketrain}()
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}}, ::Type{ElType}) where ElType
+    Spiketrain(similar(Array{ElType}, axes(bc)))
+end
+#Base.length(x::Spiketrain) = length(x.spikes)
+#Base.iterate(x::Spiketrain, i=1) = iterate(x.spikes,i)
+#Base.broadcast(f, xs::Spiketrain) = broadcast(f, xs.spikes)
+#Base.broadcast(f, x::Spiketrain, y) = Spiketrain(broadcast(f, x.spikes, y))
+#Base.broadcast(f, x::Spiketrain, y::Spiketrain) = Spiketrain(broadcast(f, x.spikes, y.spikes))
+
+KernelFunctions.kernelmatrix(k::KernelFunctions.Kernel, x::Spiketrain, y::Spiketrain) = k.(x.spikes, permutedims(y.spikes))
+
 function StatsBase.mean(k::KernelFunctions.Kernel, x, y)
     K = kernelmatrix(k, x,y)
     vec(mean(K,dims=2))
@@ -34,6 +53,11 @@ end
 function (k::SpikeKernel)(x::AbstractVector{Float64},y::AbstractVector{Float64})
     τ = k.τ[1]
     sum(exp.(-abs.(broadcast(-, x, permutedims(y)))/τ))
+end
+
+function (k::SpikeKernel)(x::Spiketrain, y::Spiketrain)
+    τ = k.τ[1]
+    sum(exp.(-abs.(broadcast(-, x.spikes, permutedims(y.spikes)))/τ))
 end
 
 function spike_kernel(x::AbstractVector{T}, y::AbstractVector{T},τ::Real) where T <: Real
@@ -171,4 +195,5 @@ end
 #TODO: Maximize regression loss i.e. posterior
 
 include("regression.jl")
+include("kernelpca.jl")
 end # module SpiketrainClustering
