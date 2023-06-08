@@ -1,5 +1,5 @@
 using SpiketrainClustering
-using SpiketrainClustering: Spiketrain
+using SpiketrainClustering: Spiketrain, PopulationSpiketrain
 using KernelFunctions
 using Flux
 using Flux: Optimise, Zygote
@@ -7,6 +7,22 @@ using Distributions
 using Random
 using LinearAlgebra
 using Test
+
+@testset "basic" begin
+    x = Spiketrain([0.1, 0.3, 0.4])
+    y = x .+ 0.01
+    @test y.spikes ≈ [0.11, 0.31, 0.41]
+
+    @test x[1] ≈ 0.1
+    x[1] = 0.15
+    @test x[1] ≈ 0.15
+
+    y = Spiketrain([0.3, 0.5])
+    xx = PopulationSpiketrain([x,y])
+
+    @test xx[1] ≈ x
+    @test xx[1,1] ≈  0.15
+end
 
 @testset "mean" begin
     x = [Spiketrain([0.1, 0.3, 0.4]), Spiketrain([0.2,0.4])]
