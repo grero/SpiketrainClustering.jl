@@ -34,7 +34,7 @@ end
 """
 Product kernel for trials of spiketrains from multiple neurons
 """
-function get_kernel_function(sp::Vector{Vector{Vector{Float64}}})
+function get_kernel_function(sp::Vector{PopulationSpiketrain})
     # first make sure that each trial has the same number of neurons
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
@@ -76,15 +76,17 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
     L = fill(NaN, niter+1)
     L[1] = loss(ps)
     prog = Progress(niter, dt=1.0)
+    stop_i = niter+1
     for i in 1:niter
         grads = only((Zygote.gradient(loss, ps)))
         Optimise.update!(opt, ps, grads)
         L[1+i] = loss(ps)
         if abs(L[1+i]-L[i])/L[i] <= rel_tol
+            stop_i = i+1
             finish!(prog)
             break
         end
         next!(prog, showvalues=[(:posterior, L[i+1])])
     end
-    kernelc(exp.(ps[1:2])), f(sp,sp,y,exp.(ps)), L
+    kernelc(exp.(ps[1:2])), f(sp,sp,y,exp.(ps)), L[1:stop_i]
 end

@@ -1,5 +1,5 @@
 using SpiketrainClustering
-using SpiketrainClustering: Spiketrain
+using SpiketrainClustering: Spiketrain, PopulationSpiketrain
 using KernelFunctions
 using Flux
 using Flux: Optimise, Zygote
@@ -7,6 +7,30 @@ using Distributions
 using Random
 using LinearAlgebra
 using Test
+
+@testset "basic" begin
+    x = Spiketrain([0.1, 0.3, 0.4])
+    y = x .+ 0.01
+    @test y.spikes ≈ [0.11, 0.31, 0.41]
+
+    @test x[1] ≈ 0.1
+    x[1] = 0.15
+    @test x[1] ≈ 0.15
+
+    y = Spiketrain([0.3, 0.5])
+    xx = PopulationSpiketrain([x,y])
+
+    @test xx[1] ≈ x
+    @test xx[1,1] ≈  0.15
+end
+
+@testset "kernels" begin
+    xx = PopulationSpiketrain([[0.1, 0.3],[0.2,0.4,0.45]])
+    @test length.(xx) == [2,3]
+    params,kernel = SpiketrainClustering.get_kernel_function([xx])
+    K = kernel(params)  
+    @test typeof(K) <: SpiketrainClustering.ProductKernel
+end
 
 @testset "mean" begin
     x = [Spiketrain([0.1, 0.3, 0.4]), Spiketrain([0.2,0.4])]
@@ -33,29 +57,9 @@ end
     sp1 = [SpiketrainClustering.Spiketrain(cumsum(rand(g1, 5))) for i in 1:nt]
     y = [sp[4] for sp in sp1] + 0.05randn(nt)
 
-    ps = [1.0, 1.0, 1.0]
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
-    function f(x, x_train, y_train, ps)
-        k = kernelc(ps[1:2])
-        return kernelmatrix(k, x, x_train) * ((kernelmatrix(k, x_train) + (ps[3]) * I) \ y_train)
-    end 
-
-    function loss(θ)
-        ŷ = f(sp1, sp1, y, exp.(θ))
-        return norm(y - ŷ) + exp(θ[3]) * norm(ŷ)
-    end
-
-   @time grads = only((Zygote.gradient(loss, ps)))
-   # initial loss
-   L = fill(0.0,31)
-   L[1] = loss(ps)
-   opt = Optimise.AdaGrad(0.5)
-   for i in 1:length(L)-1
-       grads = only((Zygote.gradient(loss, ps)))
-       Optimise.update!(opt, ps, grads)
-       L[i+1] = loss(ps)
-   end
-   @show L
+    kernel, K, L = SpiketrainClustering.do_regression(y, sp1)
+    @test typeof(kernel) <: SpiketrainClustering.SchoenbergKernel{Float64, SpiketrainClustering.SpikeKernel{Float64}}
+    @test L[end] < L[end-1]
 end
 
 @testset "Product kernel" begin

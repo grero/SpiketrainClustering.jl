@@ -10,12 +10,30 @@ using StatsBase
 struct Spiketrain <: AbstractVector{Float64}
     spikes::Vector{Float64}
 end
+
 Base.size(x::Spiketrain) = size(x.spikes)
 Base.getindex(x::Spiketrain, inds::Vararg{Int,1}) = x.spikes[inds...]
 Base.setindex!(x::Spiketrain,val, inds::Vararg{Int,1}) = x.spikes[inds...] = val
 
 Base.BroadcastStyle(::Type{<:Spiketrain}) = Broadcast.ArrayStyle{Spiketrain}()
 function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}}, ::Type{ElType}) where ElType
+    Spiketrain(similar(Array{ElType}, axes(bc)))
+end
+
+struct PopulationSpiketrain <: AbstractMatrix{Float64}
+    spikes::Vector{Spiketrain}
+end
+
+PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
+
+Base.size(x::PopulationSpiketrain) = size(x.spikes)
+Base.getindex(x::PopulationSpiketrain, ii) = x.spikes[ii]
+Base.getindex(x::PopulationSpiketrain, ii,jj) = x.spikes[ii][jj]
+Base.setindex!(x::PopulationSpiketrain,val, ii) = x.spikes[ii] = val
+Base.setindex!(x::PopulationSpiketrain,val, ii,jj) = x.spikes[ii][jj] = val
+Base.BroadcastStyle(::Type{<:PopulationSpiketrain}) = Broadcast.ArrayStyle{PopulationSpiketrain}()
+
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{PopulationSpiketrain}}, ::Type{ElType}) where ElType
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
 
