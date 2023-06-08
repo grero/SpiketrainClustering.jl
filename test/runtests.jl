@@ -1,4 +1,5 @@
 using SpiketrainClustering
+using SpiketrainClustering: Spiketrain
 using KernelFunctions
 using Flux
 using Flux: Optimise, Zygote
@@ -8,16 +9,16 @@ using LinearAlgebra
 using Test
 
 @testset "mean" begin
-    x = [[0.1, 0.3, 0.4], [0.2,0.4]]
-    y = [[0.3, 0.5], [0.5,0.6, 0.7]]
+    x = [Spiketrain([0.1, 0.3, 0.4]), Spiketrain([0.2,0.4])]
+    y = Spiketrain.([[0.3, 0.5], [0.5,0.6, 0.7]])
     kernel = SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0])
     μ = mean(kernel, x, y)
     @test μ ≈ [0.15358134219644462, 0.37404874973981617]
 end
 
 @testset "Divergence" begin
-    x = [[0.1, 0.3, 0.4], [0.2,0.4]]
-    y = [[0.3, 0.5, 0.7], [0.5,0.7]]
+    x = Spiketrain.([[0.1, 0.3, 0.4], [0.2,0.4]])
+    y = Spiketrain.([[0.3, 0.5, 0.7], [0.5,0.7]])
     kernel = SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0])
     d = SpiketrainClustering.divergence(kernel, x, y)
     # TODO: Check that this actually is correct
