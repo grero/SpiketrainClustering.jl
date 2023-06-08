@@ -24,6 +24,8 @@ struct PopulationSpiketrain <: AbstractMatrix{Float64}
     spikes::Vector{Spiketrain}
 end
 
+PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
+
 Base.size(x::PopulationSpiketrain) = size(x.spikes)
 Base.getindex(x::PopulationSpiketrain, ii) = x.spikes[ii]
 Base.getindex(x::PopulationSpiketrain, ii,jj) = x.spikes[ii][jj]
