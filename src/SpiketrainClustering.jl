@@ -18,11 +18,9 @@ Base.BroadcastStyle(::Type{<:Spiketrain}) = Broadcast.ArrayStyle{Spiketrain}()
 function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}}, ::Type{ElType}) where ElType
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
-#Base.length(x::Spiketrain) = length(x.spikes)
-#Base.iterate(x::Spiketrain, i=1) = iterate(x.spikes,i)
-#Base.broadcast(f, xs::Spiketrain) = broadcast(f, xs.spikes)
-#Base.broadcast(f, x::Spiketrain, y) = Spiketrain(broadcast(f, x.spikes, y))
-#Base.broadcast(f, x::Spiketrain, y::Spiketrain) = Spiketrain(broadcast(f, x.spikes, y.spikes))
+
+KernelFunctions.dim(x::Spiketrain) = 0 # always pass
+KernelFunctions.dim(x::AbstractVector{Spiketrain}) = 0 # always pass
 
 KernelFunctions.kernelmatrix(k::KernelFunctions.Kernel, x::Spiketrain, y::Spiketrain) = k.(x.spikes, permutedims(y.spikes))
 
