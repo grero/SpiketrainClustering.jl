@@ -24,11 +24,11 @@ get_kernel_function(sp::Any) = error("Not implemented")
 A single kernel for trials of spiketrains from a single neuron
 """
 function get_kernel_function(sp::Vector{Vector{Float64}})
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
 end
 
 function get_kernel_function(sp::Vector{Spiketrain})
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
 end
 
 """
@@ -39,7 +39,7 @@ function get_kernel_function(sp::Vector{Vector{Vector{Float64}}})
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
     n = nn[1]
-    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel2(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]))
+    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]))
 end
 
 """
