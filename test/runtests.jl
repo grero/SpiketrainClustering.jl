@@ -24,6 +24,14 @@ using Test
     @test xx[1,1] ≈  0.15
 end
 
+@testset "kernels" begin
+    xx = PopulationSpiketrain([[0.1, 0.3],[0.2,0.4,0.45]])
+    @test length.(xx) == [2,3]
+    params,kernel = SpiketrainClustering.get_kernel_function([xx])
+    K = kernel(params)  
+    @test typeof(K) <: SpiketrainClustering.ProductKernel
+end
+
 @testset "mean" begin
     x = [Spiketrain([0.1, 0.3, 0.4]), Spiketrain([0.2,0.4])]
     y = Spiketrain.([[0.3, 0.5], [0.5,0.6, 0.7]])
