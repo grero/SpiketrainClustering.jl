@@ -10,6 +10,7 @@ using StatsBase
 struct Spiketrain <: AbstractVector{Float64}
     spikes::Vector{Float64}
 end
+
 Base.size(x::Spiketrain) = size(x.spikes)
 Base.getindex(x::Spiketrain, inds::Vararg{Int,1}) = x.spikes[inds...]
 Base.setindex!(x::Spiketrain,val, inds::Vararg{Int,1}) = x.spikes[inds...] = val
