@@ -7,35 +7,128 @@ format: html
 using SpiketrainClustering
 using LinearAlgebra
 using Distributions
+using MultivariateStats
+using LinearAlgebra
 
 using Makie
 using CairoMakie
 
 # Two categories, separated by spike times only
 n = 5 # five spikes
-nt = 100
-g1 = Gamma(0.3, 0.5)
-g2 = Gamma(2.3, 0.9)
-sp1 = [cumsum(rand(g1, 5)) for i in 1:nt]
-sp2 = [cumsum(rand(g2, 5)) for i in 1:nt]
-tidx = [fill(i,5) for i in 1:nt]
-D = [SpiketrainClustering.gaussian_kernel(s1,s2,0.5) for s1 in sp1, s2 in sp2]
-D2 = [SpiketrainClustering.schoenberg_kernel(s1,s2,0.5, 1.0) for s1 in sp1, s2 in sp2]
-u,s,v = svd(D)
-u2,s2,v2 = svd(D2)
-@time l = SpiketrainClustering.regression_loss(0.5, 1.0, 0.1, sp1, randn(nt))
-@show l
+nt1 = 75 
+nt2 = 95
+μ = 0.5
+g1 = Gamma(2.0,2.0/μ)
+g2 = Gamma(7.0, 7.0/μ)
+sp1 = [cumsum(rand(g1, 5)) for i in 1:nt1]
+sp2 = [cumsum(rand(g2, 5)) for i in 1:nt2]
+tidx1 = [fill(i,5) for i in 1:nt1]
+tidx2 = [fill(i,5) for i in 1:nt2]
+
+# optimize divergence
+kernel,L = SpiketrainClustering.find_max_divergence(sp1, sp2)
+
+sp = [sp1;sp2]
+# construct the kernel matrix
+K = SpiketrainClustering.kernelmatrix(kernel, sp, sp)
+sK = Matrix(Hermitian(K))
+@info ishermitian(K)
+@info norm(sK-K)
+kpca = fit(MultivariateStats.KernelPCA, sK;kernel=nothing, maxoutdim=2)
+
+X = predict(kpca) 
+
+X1 = X[:,1:nt1]
+X2 = X[:, nt1+1:end]
+
 with_theme(theme_minimal()) do
     fig = Figure(resolution=(500,500))
     ax1 = Axis(fig[1,1])
     ax2 = Axis(fig[1,2])
 
-    for (ax, sp) in zip([ax1, ax2],[sp1, sp2])
-        scatter!(ax, cat(sp[:]...,dims=1),cat(tidx[:]...,dims=1))
+    for (ii, (ax,sp,tidx)) in enumerate(zip([ax1, ax2],[sp1, sp2],[tidx1, tidx2]))
+        scatter!(ax, cat(sp[:]...,dims=1),cat(tidx[:]...,dims=1),color=ax.palette.color[][ii])
     end
     ax3 = Axis(fig[2,1:2])
-    #lines!(ax3, 1:length(s), s)
-    lines!(ax3, 1:length(s2), s2)
+    scatter!(ax3, X1[1,:], X1[2,:])
+    scatter!(ax3, X2[1,:], X2[2,:])
+    fig
+end
+```
+```{julia}
+#| label: fig-complex
+#| fig-cap: More complex example, adapter from Memming Park et al (2013). A) The underlying oscillating firing rate driving the spiking process. B) Spike train obtained by using the firing rate in A) to drive a time-dependent Poisson process. C) The spike train is B) shifted by half a cycle. D) The projection of each spike train onto a PC space obtained by first optimizing a kernel to maximise the discrepancy between the black and red spike trains. 
+using SpiketrainClustering
+using Distributions
+using Makie
+using CairoMakie
+using LinearAlgebra
+using MultivariateStats
+
+dt = 0.001
+t = range(0.0, stop=1.0, step=dt)
+μ = 5.1 .+ 5*cos.(2π*t./(1//3))
+
+nt = 50
+sp = Vector{SpiketrainClustering.Spiketrain}(undef, nt)
+
+for i in 1:nt
+   _sp = Float64[]
+   q = -log(rand())
+   x = 0.0
+   for (_μ,_t) in zip(μ,t)
+    x += _μ*dt
+    if x >= q
+        push!(_sp, _t)
+        q = -log(rand())
+        x = 0.0
+    end
+   end
+   sp[i] = SpiketrainClustering.Spiketrain(_sp)
+end
+
+# generate a new spike train by shifting by half a cycle
+sp2 = [mod.(_sp .- (1//3)//2,1.0) for _sp in sp]
+
+params, kernelc0 = SpiketrainClustering.get_kernel_function(sp)
+kernel0 = kernelc0(params)
+#@info SpiketrainClustering.kernelmatrix(kernel0, sp, sp)
+
+kernel,L = SpiketrainClustering.find_max_divergence(sp, sp2)
+spf = [sp;sp2]
+K = SpiketrainClustering.kernelmatrix(kernel, spf, spf)
+sK = Matrix(Hermitian(K))
+kpca = fit(MultivariateStats.KernelPCA, sK;kernel=nothing, maxoutdim=2)
+X = predict(kpca) 
+X1 = X[:,1:nt]
+X2 = X[:, nt+1:end]
+
+with_theme(theme_minimal()) do
+    fig,ax = lines(t,μ)
+    ax2 = Axis(fig[2,1])
+    ax3 = Axis(fig[3,1])
+    linkxaxes!(ax,ax2, ax3)
+    for i in 1:nt
+        scatter!(ax2, sp[i], fill(i, length(sp[i])), color="black")
+        scatter!(ax3, sp2[i], fill(i, length(sp2[i])), color="red")
+    end
+    lg = GridLayout()
+    fig[4,1] = lg
+    ax4 = Axis(lg[1,2])
+    scatter!(ax4, X1[1,:], X1[2,:], color="black")
+    scatter!(ax4, X2[1,:], X2[2,:], color="red")
+    ax4.xlabel = "kPC1"
+    ax4.ylabel = "kPC2" 
+    ax.ylabel = "Firing rate"
+    ax2.ylabel = "TrialID"
+    ax3.xlabel = "Time [s]"
+    for aa in [ax, ax2]
+        aa.xticklabelsvisible = false
+    end
+    labels = [Label(fig[1,1,TopLeft()], "A"),
+              Label(fig[2,1,TopLeft()], "B"),
+              Label(fig[3,1,TopLeft()], "C"),
+              Label(lg[1,2,TopLeft()],"D")]
     fig
 end
 ```
@@ -69,5 +162,21 @@ with_theme(theme_minimal()) do
     ax2 = Axis(fig[2,1])
     lines!(ax2, 1:length(loss), loss)
     fig
+end
+```
+
+```{julia}
+# Test broadcast with zygote
+using Zygote
+using LinearAlgebra
+
+func(x,y,τ) = sum(exp.(-abs.(broadcast(-, x, permutedims(y)))./τ))
+
+let
+    x = randn(3)
+    y = randn(4)
+    func(x, y, 0.5)
+    loss(a) = func(x,y,a)
+    grads = only(Zygote.gradient(loss, [0.1]))
 end
 ```
