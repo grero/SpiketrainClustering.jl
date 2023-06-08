@@ -20,6 +20,21 @@ function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
 
+struct PopulationSpiketrain <: AbstractMatrix{Float64}
+    spikes::Vector{Spiketrain}
+end
+
+Base.size(x::PopulationSpiketrain) = size(x.spikes)
+Base.getindex(x::PopulationSpiketrain, ii) = x.spikes[ii]
+Base.getindex(x::PopulationSpiketrain, ii,jj) = x.spikes[ii][jj]
+Base.setindex!(x::PopulationSpiketrain,val, ii) = x.spikes[ii] = val
+Base.setindex!(x::PopulationSpiketrain,val, ii,jj) = x.spikes[ii][jj] = val
+Base.BroadcastStyle(::Type{<:PopulationSpiketrain}) = Broadcast.ArrayStyle{PopulationSpiketrain}()
+
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{PopulationSpiketrain}}, ::Type{ElType}) where ElType
+    Spiketrain(similar(Array{ElType}, axes(bc)))
+end
+
 KernelFunctions.dim(x::Spiketrain) = 0 # always pass
 KernelFunctions.dim(x::AbstractVector{Spiketrain}) = 0 # always pass
 
