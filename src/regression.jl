@@ -34,7 +34,7 @@ end
 """
 Product kernel for trials of spiketrains from multiple neurons
 """
-function get_kernel_function(sp::Vector{Vector{Vector{Float64}}})
+function get_kernel_function(sp::Vector{PopulationSpiketrain})
     # first make sure that each trial has the same number of neurons
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
