@@ -34,12 +34,12 @@ end
 """
 Product kernel for trials of spiketrains from multiple neurons
 """
-function get_kernel_function(sp::Vector{PopulationSpiketrain})
+function get_kernel_function(sp::Vector{PopulationSpiketrain{N}}) where N
     # first make sure that each trial has the same number of neurons
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
     n = nn[1]
-    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]))
+    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel(([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]...,)))
 end
 
 """
