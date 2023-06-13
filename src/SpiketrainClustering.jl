@@ -53,14 +53,6 @@ struct ProductKernel{T<:KernelFunctions.Kernel,N} <: KernelFunctions.Kernel
     kernels::NTuple{N,T}
 end
 
-function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T <: Vector{T2} where T2 <: Real
-    q = 1.0
-    for (kk,_x,_y) in zip(k.kernels, x, y)
-        q *= kk(_x,_y)
-    end
-    q
-end
-
 function (k::ProductKernel{T,N})(x::PopulationSpiketrain{N},y::PopulationSpiketrain{N}) where N where T <: KernelFunctions.Kernel
     q = 1.0
     for i in 1:N
