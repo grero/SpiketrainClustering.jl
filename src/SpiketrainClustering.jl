@@ -6,6 +6,7 @@ using Functors
 using Zygote
 using Zygote: ChainRules, Tangent
 using StatsBase
+using StaticArrays
 
 struct Spiketrain <: AbstractVector{Float64}
     spikes::Vector{Float64}
@@ -20,10 +21,11 @@ function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
 
-struct PopulationSpiketrain <: AbstractMatrix{Float64}
-    spikes::Vector{Spiketrain}
+struct PopulationSpiketrain{N} <: AbstractVector{Spiketrain}
+    spikes::SVector{N, Spiketrain}
 end
 
+PopulationSpiketrain(x::Vector{Spiketrain}) = PopulationSpiketrain(SVector(x...))
 PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
 
 Base.size(x::PopulationSpiketrain) = size(x.spikes)
@@ -47,8 +49,8 @@ function StatsBase.mean(k::KernelFunctions.Kernel, x, y)
     vec(mean(K,dims=2))
 end
 
-struct ProductKernel{T<:KernelFunctions.Kernel} <: KernelFunctions.Kernel
-    kernels::Vector{T}
+struct ProductKernel{T<:KernelFunctions.Kernel,N} <: KernelFunctions.Kernel
+    kernels::NTuple{N,T}
 end
 
 function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T <: Vector{T2} where T2 <: Real
@@ -59,10 +61,12 @@ function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T 
     q
 end
 
-function (k::ProductKernel)(x::PopulationSpiketrain,y::PopulationSpiketrain)
-    mapreduce(*, k.kernels, x, y;init=1.0) do kk, _x, _y
-        kk(_x,_y)
+function (k::ProductKernel{T,N})(x::PopulationSpiketrain{N},y::PopulationSpiketrain{N}) where N where T <: KernelFunctions.Kernel
+    q = 1.0
+    for i in 1:N
+        q *= k.kernels[i](x[i], y[i])
     end
+    q
 end
 
 Functors.@functor ProductKernel
