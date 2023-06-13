@@ -89,47 +89,6 @@ function (k::SpikeKernel)(x::Spiketrain, y::Spiketrain)
     sum(exp.(-abs.(broadcast(-, x.spikes, permutedims(y.spikes)))/τ))
 end
 
-function spike_kernel(x::AbstractVector{T}, y::AbstractVector{T},τ::Real) where T <: Real
-    q = 0.0
-    for _x in x
-        for _y in y
-            q += exp(-abs(_x - _y)/τ)
-        end
-    end
-    q
-end
-
-function spike_kernel2(x::AbstractVector{T}, y::AbstractVector{T}, τ::Real) where T <: Real
-    sum(exp.(-abs.(broadcast(-, x, permutedims(y)))/τ))
-end
-#function ChainRules.rrule(k::SpikeKernel, x, y)
-#    output = k(x,y) 
-#    function SpikeKernel_pullback(Δy)
-#        q1 = 0.0
-#        q2 = 0.0
-#        q3 = 0.0
-#        for _x in x
-#            for _y in y
-#                d = abs(_x-_y)
-#                q1 += exp(-d/k.τ)*d
-#                if _x > _y
-#                    q2 += -exp(-d/k.τ)
-#                    q3 += exp(-d/k.τ)
-#                else
-#                    q2 += exp(-d/k.τ)
-#                    q3 += -exp(-d/k.τ)
-#            end
-#        end
-#        q/k.τ
-#    end
-#        q1 /= k.τ^2
-#        q2 /= k.τ
-#        q3 /= k.τ
-#        Tangent{SpikeKernel}(;τ=q1*Δy), q2*Δy, q3*Δy
-#    end
-#    output, SpikeKernel_pullback
-#end
-
 Functors.@functor SpikeKernel
 
 struct SchoenbergKernel{T<:Real, T2 <: KernelFunctions.Kernel} <: KernelFunctions.Kernel
