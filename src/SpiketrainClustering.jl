@@ -72,6 +72,9 @@ function (k::SpikeKernel)(x::AbstractVector{Float64},y::AbstractVector{Float64})
 end
 
 function (k::SpikeKernel)(x::Spiketrain, y::Spiketrain)
+    if isempty(x) || isempty(y)
+        return 0.0
+    end
     τ = k.τ[1]
     sum(exp.(-abs.(broadcast(-, x.spikes, permutedims(y.spikes)))/τ))
 end
