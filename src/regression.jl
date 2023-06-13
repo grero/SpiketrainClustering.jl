@@ -91,5 +91,5 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
         end
         ProgressMeter.update!(prog, rr)
     end
-    kernelc(exp.(ps[1:2])), f(sp,sp,y,exp.(ps)), L[1:stop_i]
+    kernelc(exp.(ps[1:nparams])), f(sp,sp,y,exp.(ps)), L[1:stop_i]
 end
