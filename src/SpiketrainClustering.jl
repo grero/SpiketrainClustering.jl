@@ -6,6 +6,7 @@ using Functors
 using Zygote
 using Zygote: ChainRules, Tangent
 using StatsBase
+using StaticArrays
 
 struct Spiketrain <: AbstractVector{Float64}
     spikes::Vector{Float64}
@@ -20,10 +21,11 @@ function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
 
-struct PopulationSpiketrain <: AbstractMatrix{Float64}
-    spikes::Vector{Spiketrain}
+struct PopulationSpiketrain{N} <: AbstractVector{Spiketrain}
+    spikes::SVector{N, Spiketrain}
 end
 
+PopulationSpiketrain(x::Vector{Spiketrain}) = PopulationSpiketrain(SVector(x...))
 PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
 
 Base.size(x::PopulationSpiketrain) = size(x.spikes)
@@ -47,14 +49,14 @@ function StatsBase.mean(k::KernelFunctions.Kernel, x, y)
     vec(mean(K,dims=2))
 end
 
-struct ProductKernel{T<:KernelFunctions.Kernel} <: KernelFunctions.Kernel
-    kernels::Vector{T}
+struct ProductKernel{T<:KernelFunctions.Kernel,N} <: KernelFunctions.Kernel
+    kernels::NTuple{N,T}
 end
 
-function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T <: Vector{T2} where T2 <: Real
+function (k::ProductKernel{T,N})(x::PopulationSpiketrain{N},y::PopulationSpiketrain{N}) where N where T <: KernelFunctions.Kernel
     q = 1.0
-    for (kk,_x,_y) in zip(k.kernels, x, y)
-        q *= kk(_x,_y)
+    for i in 1:N
+        q *= k.kernels[i](x[i], y[i])
     end
     q
 end
@@ -72,50 +74,12 @@ function (k::SpikeKernel)(x::AbstractVector{Float64},y::AbstractVector{Float64})
 end
 
 function (k::SpikeKernel)(x::Spiketrain, y::Spiketrain)
+    if isempty(x) || isempty(y)
+        return 0.0
+    end
     τ = k.τ[1]
     sum(exp.(-abs.(broadcast(-, x.spikes, permutedims(y.spikes)))/τ))
 end
-
-function spike_kernel(x::AbstractVector{T}, y::AbstractVector{T},τ::Real) where T <: Real
-    q = 0.0
-    for _x in x
-        for _y in y
-            q += exp(-abs(_x - _y)/τ)
-        end
-    end
-    q
-end
-
-function spike_kernel2(x::AbstractVector{T}, y::AbstractVector{T}, τ::Real) where T <: Real
-    sum(exp.(-abs.(broadcast(-, x, permutedims(y)))/τ))
-end
-#function ChainRules.rrule(k::SpikeKernel, x, y)
-#    output = k(x,y) 
-#    function SpikeKernel_pullback(Δy)
-#        q1 = 0.0
-#        q2 = 0.0
-#        q3 = 0.0
-#        for _x in x
-#            for _y in y
-#                d = abs(_x-_y)
-#                q1 += exp(-d/k.τ)*d
-#                if _x > _y
-#                    q2 += -exp(-d/k.τ)
-#                    q3 += exp(-d/k.τ)
-#                else
-#                    q2 += exp(-d/k.τ)
-#                    q3 += -exp(-d/k.τ)
-#            end
-#        end
-#        q/k.τ
-#    end
-#        q1 /= k.τ^2
-#        q2 /= k.τ
-#        q3 /= k.τ
-#        Tangent{SpikeKernel}(;τ=q1*Δy), q2*Δy, q3*Δy
-#    end
-#    output, SpikeKernel_pullback
-#end
 
 Functors.@functor SpikeKernel
 
@@ -135,18 +99,6 @@ function divergence(k::KernelFunctions.Kernel, x, y)
     Kyy = kernelmatrix(k,y,y)
     Kxy = kernelmatrix(k,x,y)
     (1/n^2)*sum(Kxx) + (1/m^2)*sum(Kyy) - (2/(m*n))*sum(Kxy)
-end
-
-function regression_loss(σ::Real, τ::Real,σn::Real, spiketrains::Vector{Vector{Float64}}, y::Vector{Float64})
-    n = size(y,1)
-    #K = fill(0.0, n,n)
-    #for i in 1:n
-    #    for j in 1:n
-    #        K[j,i] = schoenberg_kernel(spiketrains[i], spiketrains[j], τ,σ)
-    #    end
-    #end
-    K = [schoenberg_kernel(spiketrains[i], spiketrains[j], τ, σ) for i in 1:n, j in 1:n]
-    sum(posterior(K,y, σn))
 end
 
 #TODO: Maximize regression loss i.e. posterior

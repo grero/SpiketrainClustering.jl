@@ -1,4 +1,5 @@
 using Zygote
+using ForwardDiff
 using Flux
 using Flux: Zygote, Optimise
 using LinearAlgebra
@@ -34,12 +35,12 @@ end
 """
 Product kernel for trials of spiketrains from multiple neurons
 """
-function get_kernel_function(sp::Vector{PopulationSpiketrain})
+function get_kernel_function(sp::Vector{PopulationSpiketrain{N}}) where N
     # first make sure that each trial has the same number of neurons
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
     n = nn[1]
-    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]))
+    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel(([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]...,)))
 end
 
 """
@@ -72,21 +73,23 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
         return norm(y - ŷ) + exp(θ[end]) * norm(ŷ)
     end
 
-    ps = [1.0, 1.0, 1.0]
+    ps = [params;1.0]
+
     L = fill(NaN, niter+1)
     L[1] = loss(ps)
-    prog = Progress(niter, dt=1.0)
+    prog = ProgressThresh(rel_tol, dt=1.0,showspeed=true)
     stop_i = niter+1
     for i in 1:niter
-        grads = only((Zygote.gradient(loss, ps)))
+        grads = ForwardDiff.gradient(loss, ps)
         Optimise.update!(opt, ps, grads)
         L[1+i] = loss(ps)
-        if abs(L[1+i]-L[i])/L[i] <= rel_tol
+        rr = abs(L[1+i]-L[i])/L[i] 
+        if  rr <= rel_tol
             stop_i = i+1
             finish!(prog)
             break
         end
-        next!(prog, showvalues=[(:posterior, L[i+1])])
+        ProgressMeter.update!(prog, rr)
     end
-    kernelc(exp.(ps[1:2])), f(sp,sp,y,exp.(ps)), L[1:stop_i]
+    kernelc(exp.(ps[1:nparams])), f(sp,sp,y,exp.(ps)), L[1:stop_i]
 end
