@@ -150,18 +150,6 @@ function divergence(k::KernelFunctions.Kernel, x, y)
     (1/n^2)*sum(Kxx) + (1/m^2)*sum(Kyy) - (2/(m*n))*sum(Kxy)
 end
 
-function regression_loss(σ::Real, τ::Real,σn::Real, spiketrains::Vector{Vector{Float64}}, y::Vector{Float64})
-    n = size(y,1)
-    #K = fill(0.0, n,n)
-    #for i in 1:n
-    #    for j in 1:n
-    #        K[j,i] = schoenberg_kernel(spiketrains[i], spiketrains[j], τ,σ)
-    #    end
-    #end
-    K = [schoenberg_kernel(spiketrains[i], spiketrains[j], τ, σ) for i in 1:n, j in 1:n]
-    sum(posterior(K,y, σn))
-end
-
 #TODO: Maximize regression loss i.e. posterior
 
 include("regression.jl")
