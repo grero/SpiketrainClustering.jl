@@ -59,6 +59,12 @@ function (k::ProductKernel)(x::AbstractVector{T},y::AbstractVector{T})  where T 
     q
 end
 
+function (k::ProductKernel)(x::PopulationSpiketrain,y::PopulationSpiketrain)
+    mapreduce(*, k.kernels, x, y;init=1.0) do kk, _x, _y
+        kk(_x,_y)
+    end
+end
+
 Functors.@functor ProductKernel
 struct SpikeKernel{T<:Real} <: KernelFunctions.Kernel
     τ::Vector{T}
