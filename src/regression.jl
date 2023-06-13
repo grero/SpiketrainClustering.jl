@@ -1,4 +1,5 @@
 using Zygote
+using ForwardDiff
 using Flux
 using Flux: Zygote, Optimise
 using LinearAlgebra
@@ -78,7 +79,7 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
     prog = ProgressThresh(rel_tol, dt=1.0,showspeed=true)
     stop_i = niter+1
     for i in 1:niter
-        grads = only((Zygote.gradient(loss, ps)))
+        grads = ForwardDiff.gradient(loss, ps)
         Optimise.update!(opt, ps, grads)
         L[1+i] = loss(ps)
         rr = abs(L[1+i]-L[i])/L[i] 
