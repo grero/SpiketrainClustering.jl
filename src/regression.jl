@@ -73,7 +73,8 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
         return norm(y - ŷ) + exp(θ[end]) * norm(ŷ)
     end
 
-    ps = [1.0, 1.0, 1.0]
+    ps = [params;1.0]
+
     L = fill(NaN, niter+1)
     L[1] = loss(ps)
     prog = ProgressThresh(rel_tol, dt=1.0,showspeed=true)
