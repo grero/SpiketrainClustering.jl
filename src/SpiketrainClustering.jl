@@ -25,6 +25,8 @@ struct PopulationSpiketrain{N} <: AbstractVector{Spiketrain}
     spikes::SVector{N, Spiketrain}
 end
 
+get_ncells(x::PopulationSpiketrain{N}) where N = N
+
 PopulationSpiketrain(x::Vector{Spiketrain}) = PopulationSpiketrain(SVector(x...))
 PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
 
