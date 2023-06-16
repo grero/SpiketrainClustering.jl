@@ -82,7 +82,11 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
         return norm(ytest - ŷ) + exp(θ[end]) * norm(ŷ)
     end
 
-    ps = [params;1.0]
+    if p0 === nothing
+        ps = [params;1.0]
+    else
+        ps = p0[1:nparams+1]
+    end
 
     L = fill(NaN, niter+1)
     L[1] = loss(ps)
