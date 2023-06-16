@@ -22,6 +22,9 @@ using Test
 
     @test xx[1] ≈ x
     @test xx[1,1] ≈  0.15
+
+    ncells = SpiketrainClustering.get_ncells(xx)
+    @test ncells == 2
 end
 
 @testset "kernels" begin
