@@ -58,19 +58,28 @@ with \$\\kappa'\$ given by
 \$\\kappa'(x,y) = sum_{i,j}\\exp\\left( -\\frac{1}{\\tau} | x_i - y_i| \\right)\$.
 
 """
-function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_tol=sqrt(eps(Float64)))
+function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_tol=sqrt(eps(Float64)), r_train=0.8,p0::Union{Nothing, Vector{T}}=nothing) where T<: Real
     # prep the kernel
     params,kernelc = get_kernel_function(sp)
 
     nparams = length(params)
+
+    #separate into training and testing
+    nt = length(sp)
+    ntrain = round(Int64, r_train*nt)
+    ntest = nt - ntrain
+    sp_train = sp[1:ntrain]
+    sp_test = sp[ntrain+1:end]
+    ytrain = y[1:ntrain]
+    ytest = y[ntrain+1:end]
     function f(x, x_train, y_train, ps)
         k = kernelc(ps[1:nparams])
         return kernelmatrix(k, x, x_train) * ((kernelmatrix(k, x_train) + (ps[nparams+1]) * I) \ y_train)
     end 
 
     function loss(θ)
-        ŷ = f(sp, sp, y, exp.(θ))
-        return norm(y - ŷ) + exp(θ[end]) * norm(ŷ)
+        ŷ = f(sp_test, sp_train, ytrain, exp.(θ))
+        return norm(ytest - ŷ) + exp(θ[end]) * norm(ŷ)
     end
 
     ps = [params;1.0]
