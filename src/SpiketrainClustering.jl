@@ -8,8 +8,8 @@ using Zygote: ChainRules, Tangent
 using StatsBase
 using StaticArrays
 
-struct Spiketrain <: AbstractVector{Float64}
-    spikes::Vector{Float64}
+struct Spiketrain{T<:Real} <: AbstractVector{T}
+    spikes::Vector{T}
 end
 
 Base.size(x::Spiketrain) = size(x.spikes)
@@ -42,7 +42,7 @@ function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{PopulationS
 end
 
 KernelFunctions.dim(x::Spiketrain) = 0 # always pass
-KernelFunctions.dim(x::AbstractVector{Spiketrain}) = 0 # always pass
+KernelFunctions.dim(x::AbstractVector{Spiketrain{T}}) where T <: Real = 0 # always pass
 
 KernelFunctions.kernelmatrix(k::KernelFunctions.Kernel, x::Spiketrain, y::Spiketrain) = k.(x.spikes, permutedims(y.spikes))
 
