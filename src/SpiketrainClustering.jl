@@ -75,12 +75,64 @@ function (k::SpikeKernel)(x::AbstractVector{Float64},y::AbstractVector{Float64})
     sum(exp.(-abs.(broadcast(-, x, permutedims(y)))/τ))
 end
 
-function (k::SpikeKernel)(x::Spiketrain, y::Spiketrain)
+"""
+Faster way to compute the kernel
+"""
+function (kernel::SpikeKernel{T})(x::Spiketrain) where T <: Real
+    if isempty(x)
+        return 0.0 
+    end
+    τ = kernel.τ[1]
+    nx = length(x.spikes)
+    xs = sort(x.spikes)
+    ex1 = exp.(xs/τ)
+    ex2 = exp.(-xs/τ)
+    s1 = fill(zero(T), nx)
+    s2 = fill(zero(T), nx)
+    s1[1] = ex1[1]
+    for i in 2:nx
+        s1[i] = s1[i-1] + ex1[i] 
+        s2[nx-i+1] = s2[nx-i+2] + ex2[nx-i+2] 
+    end
+    q = 0.0
+    for i in 1:nx
+        q += s1[i]*ex2[i]+s2[i]*ex1[i]
+    end
+    q
+end
+
+function (kernel::SpikeKernel{T})(x::Spiketrain, y::Spiketrain) where T <: Real
     if isempty(x) || isempty(y)
         return 0.0
     end
-    τ = k.τ[1]
-    sum(exp.(-abs.(broadcast(-, x.spikes, permutedims(y.spikes)))/τ))
+    τ = kernel.τ[1]
+    nx = length(x.spikes)
+    ny = length(y.spikes)
+    xs = sort(x.spikes)
+    ys = sort(y.spikes)
+
+    e1 = exp.(ys/τ)
+    e2 = exp.(-ys/τ)
+    s1 = fill(zero(T),ny)
+    s1[1] = e1[1]
+    s2 = fill(zero(T), ny)
+    #s2[end] = e2[end]
+    for i in 2:ny
+        s1[i] = s1[i-1] + e1[i] 
+        s2[ny-i+1] = s2[ny-i+2] + e2[ny-i+2]
+    end
+    q = zero(T) 
+    for i in 1:nx
+        _x = xs[i]
+        j = searchsortedlast(ys,_x)
+        if j == 0
+            q += s2[1]*exp(_x/τ) + exp(-(ys[1]-_x)/τ)
+        else
+            q += s2[j]*exp(_x/τ)
+            q += s1[j]*exp(-_x/τ)
+        end
+    end
+    q 
 end
 
 Functors.@functor SpikeKernel
@@ -90,7 +142,7 @@ struct SchoenbergKernel{T<:Real, T2 <: KernelFunctions.Kernel} <: KernelFunction
     σ::Vector{T}
 end
 
-(k::SchoenbergKernel)(x,y) = exp(-(k.skernel(x,x) - 2*k.skernel(x,y) + k.skernel(y,y))/k.σ[1]^2)
+(k::SchoenbergKernel)(x,y) = exp(-(k.skernel(x) - 2*k.skernel(x,y) + k.skernel(y))/k.σ[1]^2)
 
 Functors.@functor SchoenbergKernel
 
