@@ -85,7 +85,7 @@ function do_regression(y::Vector{Float64}, sp;niter=20, opt=Optimise.Adam(),rel_
     ytest = y[ntrain+1:end]
     function f(x, x_train, y_train, ps)
         #k = kernelc(ps[1:nparams])
-        k = create_kernel(ps, first(sp))
+        k = kernelc(ps)
         return kernelmatrix(k, x, x_train,batchsize) * ((kernelmatrix(k, x_train,batchsize) + (ps[nparams+1]) * I) \ y_train)
     end 
 
