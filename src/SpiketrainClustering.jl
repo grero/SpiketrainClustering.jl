@@ -145,6 +145,37 @@ end
 (k::SchoenbergKernel)(x,y) = exp(-(k.skernel(x) - 2*k.skernel(x,y) + k.skernel(y))/k.σ[1]^2)
 
 Functors.@functor SchoenbergKernel
+ 
+#TODO: Write rrule/frule for this since it is taking **forever**.
+"""
+```
+function kernelmatrix(kernel::KernelFunctions.Kernel, x::Vector{PopulationSpiketrain{N}},batchsize::Int64) where N
+```
+Compute kernel matrix in batches of `batchsize` using all available threads
+"""
+function KernelFunctions.kernelmatrix(kernel::KernelFunctions.Kernel, x, y, batchsize::Int64)
+
+    if batchsize == 0
+       return kernelmatrix(kernel, x, y)
+    end
+    k = kernel(x[1], x[1])
+    nx = length(x)
+    ny = length(y)
+    K = fill(zero(typeof(k)), nx,ny)
+    idxx = [range(start=1, stop=nx+1, step=batchsize);]
+    idxx[end] = nx+1
+    idxy = [range(start=1, stop=ny+1, step=batchsize);]
+    idxy[end] = ny+1
+    qx = zip(idxx[1:end-1], idxx[2:end])
+    qy = zip(idxy[1:end-1], idxy[2:end])
+    qq = collect(Base.product(qx,qy))
+    Threads.@threads for ((i1,i2),(j1,j2)) in qq
+        K[i1:i2-1,j1:j2-1] = kernelmatrix(kernel, x[i1:i2-1], y[j1:j2-1])
+    end
+    K
+end
+
+KernelFunctions.kernelmatrix(kernel, x, batchsize::Int64) = kernelmatrix(kernel, x, x, batchsize)
 
 function divergence(k::KernelFunctions.Kernel, x, y)
     n = length(x)
