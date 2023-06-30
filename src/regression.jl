@@ -28,19 +28,30 @@ function get_kernel_function(sp::Vector{Vector{Float64}})
     params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
 end
 
-function get_kernel_function(sp::Vector{Spiketrain})
-    params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+function get_kernel_function(sp::Vector{Spiketrain{T}}) where T <: Real
+    #params, kernelc = Flux.destructure(SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]))
+    params = [1.0, 1.0] 
+    function kernelc(params)
+        kernel = SchoenbergKernel(SpikeKernel([params[1]]), [params[2]])
+    end
+    params, kernelc
 end
 
 """
 Product kernel for trials of spiketrains from multiple neurons
 """
-function get_kernel_function(sp::Vector{PopulationSpiketrain{N}}) where N
+function get_kernel_function(sp::Vector{PopulationSpiketrain})
     # first make sure that each trial has the same number of neurons
     nn = length.(sp)
     all(nn .== nn[1]) || error("All trials should have the same number of neurons")
     n = nn[1]
-    params, kernelc = Flux.destructure(SpiketrainClustering.ProductKernel(([SpiketrainClustering.SchoenbergKernel(SpiketrainClustering.SpikeKernel([1.0]), [1.0]) for k in 1:n]...,)))
+    params = fill(1.0, 2*n)
+    function kernelc(params)
+        np = length(params)
+        kernels = [SchoenbergKernel(SpikeKernel([params[2*i-1]]),[params[2*i]]) for i in 1:div(np,2)]
+        ProductKernel(kernels)
+    end
+    params, kernelc
 end
 
 """
