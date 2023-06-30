@@ -21,13 +21,12 @@ function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{Spiketrain}
     Spiketrain(similar(Array{ElType}, axes(bc)))
 end
 
-struct PopulationSpiketrain{N} <: AbstractVector{Spiketrain}
-    spikes::SVector{N, Spiketrain}
+struct PopulationSpiketrain <: AbstractVector{Spiketrain}
+    spikes::Vector{Spiketrain}
 end
 
-get_ncells(x::PopulationSpiketrain{N}) where N = N
+get_ncells(x::PopulationSpiketrain) = length(x)
 
-PopulationSpiketrain(x::Vector{Spiketrain}) = PopulationSpiketrain(SVector(x...))
 PopulationSpiketrain(x::Vector{Vector{Float64}}) = PopulationSpiketrain(Spiketrain.(x))
 
 Base.size(x::PopulationSpiketrain) = size(x.spikes)
@@ -51,12 +50,13 @@ function StatsBase.mean(k::KernelFunctions.Kernel, x, y)
     vec(mean(K,dims=2))
 end
 
-struct ProductKernel{T<:KernelFunctions.Kernel,N} <: KernelFunctions.Kernel
-    kernels::NTuple{N,T}
+struct ProductKernel{T<:KernelFunctions.Kernel} <: KernelFunctions.Kernel
+    kernels::Vector{T}
 end
 
-function (k::ProductKernel{T,N})(x::PopulationSpiketrain{N},y::PopulationSpiketrain{N}) where N where T <: KernelFunctions.Kernel
+function (k::ProductKernel{T})(x::PopulationSpiketrain,y::PopulationSpiketrain) where T <: KernelFunctions.Kernel
     q = 1.0
+    N = length(k.kernels)
     for i in 1:N
         q *= k.kernels[i](x[i], y[i])
     end
